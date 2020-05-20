@@ -5,8 +5,14 @@ import utfpr.edu.swing.utils.ForegroundUpdateListenner;
 import utfpr.edu.swing.utils.SharpDashedBorder;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Container;
+import java.awt.Point;
+import java.awt.Rectangle;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
+import net.java.balloontip.BalloonTip;
+import net.java.balloontip.positioners.LeftBelowPositioner;
+import net.java.balloontip.styles.ToolTipBalloonStyle;
 
 /**
  * Class that represents an atom from an argument as a swing.JComponent.
@@ -29,6 +35,8 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
     private Color borderColor = getForeground();
     
     private double sizeMultiplier = 1.0;
+    
+    public final BalloonTip toolTip;
 
     /**
      * Constructor with tooltip = "" , strict = true , type = Atom.ACCEPTED_NONFOCUSED_ARGUMENT_TYPE and myFramework = null
@@ -155,9 +163,9 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
         this.type = type;
         this.myFramework = myFramework;
 
-        if (!tooltip.equals("")) {
-            this.setToolTipText(tooltip);
-        }
+        this.toolTip = new BalloonTip(this, tooltip, new ToolTipBalloonStyle(new Color(184, 207, 229), new Color(99, 130, 191)), false);
+        this.toolTip.setVisible(false);
+        this.toolTip.setPositioner(new AtomTooltipPositioner(5, 5));
 
         updateForegroundByType();
     }
@@ -202,4 +210,63 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
         updateForegroundByType();
     }
 
+    /**
+     * Returns the x position the argument in relation to the root argument. The
+     * root argument is an argument which parent is not an Argument.
+     *
+     * @return the x position relative to the root
+     */
+    protected int getXToRoot() {
+        int x = 0;
+
+        Container parent = getParent();
+
+        while (parent instanceof Argument) {
+            x += parent.getX();
+            parent = parent.getParent();
+        }
+
+        return x;
+    }
+
+    /**
+     * Returns the y position the argument in relation to the root argument. The
+     * root argument is an argument which parent is not an Argument.
+     *
+     * @return the y position relative to the root
+     */
+    protected int getYToRoot() {
+        int y = 0;
+
+        Container parent = getParent();
+
+        while (parent instanceof Argument) {
+            y += parent.getY();
+            parent = parent.getParent();
+        }
+
+        return y;
+    }
+
+    void clear() {
+        toolTip.closeBalloon();
+    }
+    
+    class AtomTooltipPositioner extends LeftBelowPositioner{
+
+        public AtomTooltipPositioner(int hO, int vO) {
+            super(hO, vO);
+        }
+
+        @Override
+        protected void determineLocation(Rectangle attached) {
+            if(myFramework != null){
+                Point myFrameP = myFramework.getAFPositionOnFrame(getBalloonTip().getTopLevelContainer());
+                attached.setSize((int)(getWidth() * myFramework.getScaling()), (int)(getHeight() * myFramework.getScaling()));
+                attached.setLocation((int)((getX() + getXToRoot()) * myFramework.getScaling()) + myFrameP.x, (int)((getY() + getYToRoot()) * myFramework.getScaling()) + myFrameP.y);
+            }
+            super.determineLocation(attached);
+        }
+        
+    }
 }

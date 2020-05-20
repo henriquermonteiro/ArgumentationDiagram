@@ -37,19 +37,25 @@ public class DiagramTest {
         Atom e = new Atom("B5", "fractBoneIs(man_32,arm)", true).setMyFramewrok(cluster);
         
 
-        Argument arg2 = new Argument(a, "Aep2", "r_1^2", true, new Argument(c, "Ast1", "r_1^2")).setMyCluster(cluster).setType(Atom.REJECTED_NONFOCUSED_ARGUMENT_TYPE);
-        Argument arg1 = new Argument(b, "Aep2", "r1_4^2", false, new Argument(d, "Ast2", "r_1^2")).setMyCluster(cluster).setType(Atom.ACCEPTED_NONFOCUSED_ARGUMENT_TYPE);
+        Argument arg2 = new Argument(a, "Aep2", "r_1^2", true, new Argument(c, "Ast1", "r_1^2")).setMyFramework(cluster).setType(Atom.REJECTED_NONFOCUSED_ARGUMENT_TYPE);
+        Argument arg1 = new Argument(b, "Aep2", "r1_4^2", false, new Argument(d, "Ast2", "r_1^2")).setMyFramework(cluster).setType(Atom.ACCEPTED_NONFOCUSED_ARGUMENT_TYPE);
+        
+        arg1.setRuleTooltipText("Test text");
 
-        Argument arg3 = new Argument(e, "A", "r1_4^2").setMyCluster(cluster).setType(Argument.REJECTED_FOCUSED_ARGUMENT_TYPE);
+        Argument arg3 = new Argument(e, "A", "r1_4^2").setMyFramework(cluster).setType(Argument.REJECTED_FOCUSED_ARGUMENT_TYPE);
 
         cluster.addArgument(arg1);
         cluster.addArgument(arg2);
         cluster.addArgument(arg3);
         
+        cluster.addAttack(arg1, arg2, false);
+        
         cluster.setSizeMultiplier(2.0);
+//        cluster.setScaling(2.0);
 
         frame.setLayout(new FlowLayout());
         frame.getContentPane().add(cluster);
+        frame.getContentPane().add(cluster.createDiagramColorLegend(FlowLayout.LEADING, 5, 5));
         
 
         frame.setVisible(true);

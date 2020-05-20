@@ -6,6 +6,7 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
@@ -72,50 +73,39 @@ public class Attack extends JPanel {
 
         this.setOpaque(false);
 
-        this.addMouseMotionListener(new MouseMotionAdapter() {
-            private boolean onTop(int x, int y) {
-                if (img == null) {
-                    return false;
-                }
-                if (img.getWidth() - 1 < x || img.getHeight() - 1 < y) {
-                    return false;
-                }
-
-                return img.getRGB(x, y) != 16777216;
-            }
-
-            @Override
-            public void mouseMoved(MouseEvent e) {
-                if (!onTop(e.getX(), e.getY())) {
-                    if (lockRedraw) {
-                        lockRedraw = false;
-
-                        if (getParent() instanceof ArgumentionFramework) {
-                            ((ArgumentionFramework) getParent()).setFocus(null);
-                        }
-                    }
-                } else {
-                    if (!lockRedraw) {
-                        lockRedraw = true;
-
-                        if (getParent() instanceof ArgumentionFramework) {
-                            ((ArgumentionFramework) getParent()).setFocus(thisRef);
-                        }
-                    }
-                }
-            }
-        });
-
-        this.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseExited(MouseEvent e) {
-                lockRedraw = false;
-
-                if (getParent() instanceof ArgumentionFramework) {
-                    ((ArgumentionFramework) getParent()).setFocus(null);
-                }
-            }
-        });
+//        this.addMouseMotionListener(new MouseMotionAdapter() {
+//            @Override
+//            public void mouseMoved(MouseEvent e) {
+//                if (!onTop(e.getX(), e.getY())) {
+//                    if (lockRedraw) {
+//                        lockRedraw = false;
+//
+//                        if (getParent() instanceof ArgumentionFramework) {
+//                            ((ArgumentionFramework) getParent()).setFocus(null);
+//                        }
+//                    }
+//                } else {
+//                    if (!lockRedraw) {
+//                        lockRedraw = true;
+//
+//                        if (getParent() instanceof ArgumentionFramework) {
+//                            ((ArgumentionFramework) getParent()).setFocus(thisRef);
+//                        }
+//                    }
+//                }
+//            }
+//        });
+//
+//        this.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseExited(MouseEvent e) {
+//                lockRedraw = false;
+//
+//                if (getParent() instanceof ArgumentionFramework) {
+//                    ((ArgumentionFramework) getParent()).setFocus(null);
+//                }
+//            }
+//        });
 
         img = null;
     }
@@ -129,6 +119,57 @@ public class Attack extends JPanel {
     public Attack setMyFramework(ArgumentionFramework myFramework) {
         this.myFramework = myFramework;
         return this;
+    }
+    
+    private boolean onTop(int x, int y) {
+        if (img == null) {
+            return false;
+        }
+        if (img.getWidth() - 1 < x || img.getHeight() - 1 < y) {
+            return false;
+        }
+
+        return img.getRGB(x, y) != 16777216;
+    }
+    
+    private boolean onTop(int x, int y, Rectangle bound) {
+        int correctedX = x - bound.x;
+        int correctedY = y - bound.y;
+        
+        if(correctedX < 0 || correctedY < 0){
+            return false;
+        }
+        
+        if (img == null) {
+            return false;
+        }
+        if (img.getWidth() - 1 < correctedX || img.getHeight() - 1 < correctedY) {
+            return false;
+        }
+
+        return img.getRGB(correctedX, correctedY) != 16777216;
+    }
+    
+    public boolean mouseMoved(int mouseX, int mouseY){
+        if(onTop(myFramework.unScaledX(mouseX), myFramework.unScaledY(mouseY), getBounds())){
+            if (!lockRedraw) {
+                lockRedraw = true;
+
+                if (getParent() instanceof ArgumentionFramework) {
+                    ((ArgumentionFramework) getParent()).setFocus(thisRef);
+                }
+            }
+            return true;
+        }else{
+            if (lockRedraw) {
+                lockRedraw = false;
+
+//                if (getParent() instanceof ArgumentionFramework) {
+//                    ((ArgumentionFramework) getParent()).setFocus(null);
+//                }
+            }
+            return false;
+        }
     }
 
     /**
@@ -331,5 +372,9 @@ public class Attack extends JPanel {
             repaint();
         }
 
+    }
+
+    public void clear() {
+        
     }
 }
