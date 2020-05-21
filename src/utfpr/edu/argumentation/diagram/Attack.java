@@ -60,7 +60,6 @@ public class Attack extends JPanel {
         this.a1 = arg1;
         this.a2 = arg2;
 
-        System.out.println((arg1.getXToRoot() + arg1.getX())+ " <> " +  (arg2.getXToRoot() + arg2.getX()));
         if ((arg1.getXToRoot() + arg1.getX()) < (arg2.getXToRoot() + arg2.getX())) {
             leftMost = arg1;
             rightMost = arg2;
