@@ -77,13 +77,13 @@ public class Argument extends JPanel implements ForegroundUpdateListenner {
         this.rule = new JLabel(ruleID.replaceAll("^([a-zA-Z0-9]*)(_([a-zA-Z0-9]*))?(\\^([a-zA-Z0-9]*))?", "<html><font color=#000000>$1<sub>$3</sub><sup>$5</sup></font></html>"));
         this.rule.setOpaque(true);
         this.rule.setBackground(new Color(0xf9f9f9));
-        
-        if(ruleTooltip != null){
+
+        if (ruleTooltip != null) {
             ruleTooltipB = new BalloonTip(this.rule, ruleTooltip, new ToolTipBalloonStyle(new Color(184, 207, 229), new Color(99, 130, 191)), false);
             ruleTooltipB.setVisible(false);
             ruleTooltipB.setPositioner(new RuleTooltipPositioner(5, 5));
         }
-        
+
         this.argID = new JLabel(_argID.replaceAll("^([a-zA-Z0-9]*)(_([a-zA-Z0-9]*))?(\\^([a-zA-Z0-9]*))?", "<html><font color=#000000>$1<sub>$3</sub><sup>$5</sup></font></html>"));
         this.argID.setOpaque(true);
         this.argID.setBackground(new Color(0xf9f9f9));
@@ -129,21 +129,48 @@ public class Argument extends JPanel implements ForegroundUpdateListenner {
         }
     }
 
+    public void setTooltipVisibility(boolean visible) {
+        if (ruleTooltipB != null) {
+            ruleTooltipB.setVisible(visible);
+        }
+        if (conclusion.toolTip != null) {
+            conclusion.toolTip.setVisible(visible);
+        }
+
+        subArguments.forEach(((t) -> {
+            t.setTooltipVisibility(visible);
+        }));
+    }
+
     public boolean mouseMoved(int mouseX, int mouseY) {
         Rectangle bounds = this.conclusion.getBounds();
         bounds.x += getXToRoot() + getX();
         bounds.y += getYToRoot() + getY();
-        
-        if(this.conclusion.toolTip != null)
-            this.conclusion.toolTip.setVisible(bounds.contains(myFramework.unScaledX(mouseX), myFramework.unScaledY(mouseY)));
-        
+
+        if (this.conclusion.toolTip != null) {
+            if (!myFramework.isTooltipVisibilityLocked()) {
+                this.conclusion.toolTip.setVisible(bounds.contains(myFramework.unScaledX(mouseX), myFramework.unScaledY(mouseY)));
+            } else {
+                if (myFramework.getFocusedType() != null) {
+                    this.conclusion.toolTip.setVisible(myFramework.getFocusedType() == type);
+                }
+            }
+        }
+
         bounds = this.rule.getBounds();
         bounds.x += getXToRoot() + getX();
         bounds.y += getYToRoot() + getY();
-        
-        if(this.ruleTooltipB != null)
-            this.ruleTooltipB.setVisible(bounds.contains(myFramework.unScaledX(mouseX), myFramework.unScaledY(mouseY)));
-        
+
+        if (this.ruleTooltipB != null) {
+            if (!myFramework.isTooltipVisibilityLocked()) {
+                this.ruleTooltipB.setVisible(bounds.contains(myFramework.unScaledX(mouseX), myFramework.unScaledY(mouseY)));
+            } else {
+                if (myFramework.getFocusedType() != null) {
+                    this.ruleTooltipB.setVisible(myFramework.getFocusedType() == type);
+                }
+            }
+        }
+
         bounds = this.argID.getBounds();
         bounds.x += getXToRoot() + getX();
         bounds.y += getYToRoot() + getY();
@@ -152,10 +179,10 @@ public class Argument extends JPanel implements ForegroundUpdateListenner {
             return true;
         } else {
             boolean onSubArg = false;
-            for(Argument arg : subArguments){
+            for (Argument arg : subArguments) {
                 onSubArg = onSubArg | arg.mouseMoved(mouseX, mouseY);
             }
-            
+
             return onSubArg;
 //            setParentFocus(null);
         }
@@ -225,12 +252,14 @@ public class Argument extends JPanel implements ForegroundUpdateListenner {
     }
 
     public void setRuleTooltipText(String tooltip) {
-        if(ruleTooltipB != null){
+        if (ruleTooltipB != null) {
             ruleTooltipB.closeBalloon();
         }
-        
-        if(tooltip == null) return;
-        
+
+        if (tooltip == null) {
+            return;
+        }
+
         ruleTooltipB = new BalloonTip(this.rule, tooltip, new ToolTipBalloonStyle(new Color(184, 207, 229), new Color(99, 130, 191)), false);
         ruleTooltipB.setVisible(false);
         ruleTooltipB.setPositioner(new RuleTooltipPositioner(5, 5));
@@ -245,7 +274,9 @@ public class Argument extends JPanel implements ForegroundUpdateListenner {
      */
     public Argument setMyFramework(ArgumentionFramework myFramework) {
         this.myFramework = myFramework;
-        subArguments.forEach((arg) -> {arg.setMyFramework(myFramework);});
+        subArguments.forEach((arg) -> {
+            arg.setMyFramework(myFramework);
+        });
         return this;
     }
 
@@ -550,7 +581,9 @@ public class Argument extends JPanel implements ForegroundUpdateListenner {
     public void clear() {
         ruleTooltipB.closeBalloon();
         conclusion.clear();
-        subArguments.forEach((arg) -> {arg.clear();});
+        subArguments.forEach((arg) -> {
+            arg.clear();
+        });
     }
 
     /**
@@ -724,8 +757,8 @@ public class Argument extends JPanel implements ForegroundUpdateListenner {
         }
 
     }
-    
-    class RuleTooltipPositioner extends LeftBelowPositioner{
+
+    class RuleTooltipPositioner extends LeftBelowPositioner {
 
         public RuleTooltipPositioner(int hO, int vO) {
             super(hO, vO);
@@ -733,13 +766,13 @@ public class Argument extends JPanel implements ForegroundUpdateListenner {
 
         @Override
         protected void determineLocation(Rectangle attached) {
-            if(myFramework != null){
+            if (myFramework != null) {
                 Point myFrameP = myFramework.getAFPositionOnFrame(getBalloonTip().getTopLevelContainer());
-                attached.setSize((int)(rule.getWidth() * myFramework.getScaling()), (int)(rule.getHeight() * myFramework.getScaling()));
-                attached.setLocation((int)((rule.getX() + getX() + getXToRoot()) * myFramework.getScaling()) + myFrameP.x, (int)((rule.getY() + getY() + getYToRoot()) * myFramework.getScaling()) + myFrameP.y);
+                attached.setSize((int) (rule.getWidth() * myFramework.getScaling()), (int) (rule.getHeight() * myFramework.getScaling()));
+                attached.setLocation((int) ((rule.getX() + getX() + getXToRoot()) * myFramework.getScaling()) + myFrameP.x, (int) ((rule.getY() + getY() + getYToRoot()) * myFramework.getScaling()) + myFrameP.y);
             }
             super.determineLocation(attached);
         }
-        
+
     }
 }
