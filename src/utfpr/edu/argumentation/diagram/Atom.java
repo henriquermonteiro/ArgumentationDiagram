@@ -11,12 +11,16 @@ import java.awt.Rectangle;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import net.java.balloontip.BalloonTip;
+import net.java.balloontip.positioners.CenteredPositioner;
+import net.java.balloontip.positioners.LeftAbovePositioner;
 import net.java.balloontip.positioners.LeftBelowPositioner;
 import net.java.balloontip.styles.ToolTipBalloonStyle;
+import utfpr.edu.swing.utils.CustomBalloonTipVisibility;
 
 /**
- * Class that represents an atom from an argument as a swing.JComponent.
- * An argument's conclusion is considered an Atom.
+ * Class that represents an atom from an argument as a swing.JComponent. An
+ * argument's conclusion is considered an Atom.
+ *
  * @author Henrique M R Jasinski
  */
 public class Atom extends JLabel implements ForegroundUpdateListenner {
@@ -33,13 +37,15 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
     private boolean translucent = false;
 
     private Color borderColor = getForeground();
-    
+
     private double sizeMultiplier = 1.0;
-    
-    public final BalloonTip toolTip;
+
+    public CustomBalloonTipVisibility toolTip;
 
     /**
-     * Constructor with tooltip = "" , strict = true , type = Atom.ACCEPTED_NONFOCUSED_ARGUMENT_TYPE and myFramework = null
+     * Constructor with tooltip = "" , strict = true , type =
+     * Atom.ACCEPTED_NONFOCUSED_ARGUMENT_TYPE and myFramework = null
+     *
      * @param label label displayed
      */
     public Atom(String label) {
@@ -47,7 +53,9 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
     }
 
     /**
-     * Constructor with strict = true , type = Atom.ACCEPTED_NONFOCUSED_ARGUMENT_TYPE and myFramework = null
+     * Constructor with strict = true , type =
+     * Atom.ACCEPTED_NONFOCUSED_ARGUMENT_TYPE and myFramework = null
+     *
      * @param label label displayed
      * @param tooltip tooltip displayed
      */
@@ -56,7 +64,9 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
     }
 
     /**
-     * Constructor with tooltip = "" , type = Atom.ACCEPTED_NONFOCUSED_ARGUMENT_TYPE and myFramework = null
+     * Constructor with tooltip = "" , type =
+     * Atom.ACCEPTED_NONFOCUSED_ARGUMENT_TYPE and myFramework = null
+     *
      * @param label label displayed
      * @param strict if the Atom is strict
      */
@@ -65,7 +75,9 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
     }
 
     /**
-     * Constructor with type = Atom.ACCEPTED_NONFOCUSED_ARGUMENT_TYPE and myFramework = null
+     * Constructor with type = Atom.ACCEPTED_NONFOCUSED_ARGUMENT_TYPE and
+     * myFramework = null
+     *
      * @param label label displayed
      * @param tooltip tooltip displayed
      * @param strict if the Atom is strict
@@ -110,13 +122,13 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
         }
 
         if (translucent) {
-            borderColor = (ColorUtil.blend(borderColor, (myFramework == null ? ArgumentionFramework.DEFAULT_CLUSTER_BACKGROUND_COLOR : myFramework.getBackground()), (myFramework == null? ArgumentionFramework.DEFAULT_CLUSTER_FADEOFF : myFramework.getFadeoff())));
+            borderColor = (ColorUtil.blend(borderColor, (myFramework == null ? ArgumentionFramework.DEFAULT_CLUSTER_BACKGROUND_COLOR : myFramework.getBackground()), (myFramework == null ? ArgumentionFramework.DEFAULT_CLUSTER_FADEOFF : myFramework.getFadeoff())));
         }
-        
-        setText(getText().replaceAll("#([0-9a-fA-F]){6}", (translucent ? "#" + Integer.toHexString(ColorUtil.blend(Color.BLACK, (myFramework == null? ArgumentionFramework.DEFAULT_CLUSTER_BACKGROUND_COLOR : myFramework.getBackground()), (myFramework == null? ArgumentionFramework.DEFAULT_CLUSTER_FADEOFF : myFramework.getFadeoff())).getRGB()).substring(2)  : "#000000")));
-        
+
+        setText(getText().replaceAll("#([0-9a-fA-F]){6}", (translucent ? "#" + Integer.toHexString(ColorUtil.blend(Color.BLACK, (myFramework == null ? ArgumentionFramework.DEFAULT_CLUSTER_BACKGROUND_COLOR : myFramework.getBackground()), (myFramework == null ? ArgumentionFramework.DEFAULT_CLUSTER_FADEOFF : myFramework.getFadeoff())).getRGB()).substring(2) : "#000000")));
+
         if (!strict) {
-            this.setBorder(BorderFactory.createCompoundBorder(new SharpDashedBorder(borderColor, 0, (float)(1*sizeMultiplier), BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{5}, 0), BorderFactory.createEmptyBorder(3, 3, 3, 3)));
+            this.setBorder(BorderFactory.createCompoundBorder(new SharpDashedBorder(borderColor, 0, (float) (1 * sizeMultiplier), BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{5}, 0), BorderFactory.createEmptyBorder(3, 3, 3, 3)));
         } else {
             this.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(borderColor, (int) (1 * sizeMultiplier)), BorderFactory.createEmptyBorder(3, 3, 3, 3)));
         }
@@ -124,6 +136,7 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
 
     /**
      * Change the Atom color. Mimics a change in the alpha.
+     *
      * @param translucent if the atom is translucent
      */
     public void setTranslucent(boolean translucent) {
@@ -136,11 +149,12 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
 
     /**
      * Sets the Atom line thickness multiplier.
+     *
      * @param sizeMultiplier line multiplier. Must be >= 1
      * @return this Atom
      */
     public Atom setSizeMultiplier(double sizeMultiplier) {
-        if(sizeMultiplier < 1){
+        if (sizeMultiplier < 1) {
             sizeMultiplier = 1.0;
         }
         this.sizeMultiplier = sizeMultiplier;
@@ -149,8 +163,9 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
     }
 
     /**
-     * Constructor.
-     * String in the label is changed such that characters after '_' are subscript and after '^' are superscripted.
+     * Constructor. String in the label is changed such that characters after
+     * '_' are subscript and after '^' are superscripted.
+     *
      * @param label label displayed
      * @param tooltip tooltip displayed
      * @param strict if the atom is strict
@@ -158,31 +173,41 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
      * @param myFramework the argumentationframework reference
      */
     public Atom(String label, String tooltip, boolean strict, int type, ArgumentionFramework myFramework) {
-        super(label.replaceAll("^([a-zA-Z0-9]*)(_([a-zA-Z0-9]*))?(\\^([a-zA-Z0-9]*))?", "<html><font color=#000000>$1<sub>$3</sub><sup>$5</sup></font></html>"));
+        super((label.matches("^([a-zA-Z0-9]*)(_([a-zA-Z0-9]*))?(\\^([a-zA-Z0-9]*))?") ? label.replaceAll("^([a-zA-Z0-9]*)(_([a-zA-Z0-9]*))?(\\^([a-zA-Z0-9]*))?", "<html><font color=#000000>$1<sub>$3</sub><sup>$5</sup></font></html>") : label));
         this.strict = strict;
         this.type = type;
         this.myFramework = myFramework;
 
-        this.toolTip = new BalloonTip(this, tooltip, new ToolTipBalloonStyle(new Color(184, 207, 229), new Color(99, 130, 191)), false);
-        this.toolTip.setVisible(false);
-        this.toolTip.setPositioner(new AtomTooltipPositioner(5, 5));
+        if (tooltip != null) {
+            this.toolTip = new CustomBalloonTipVisibility(this, tooltip, new ToolTipBalloonStyle(new Color(184, 207, 229), new Color(99, 130, 191)), false);
+            if (myFramework != null) {
+                this.toolTip.setTopLevelContainer(myFramework);
+            }
+            this.toolTip.setVisible(false);
+            this.toolTip.setPositioner(new AtomTooltipPositioner(5, 5));
+        }
 
         updateForegroundByType();
     }
 
     /**
-     * Set the ArgumentationFramework reference.
-     * If no argumentation framework is provided, the default values are used.
+     * Set the ArgumentationFramework reference. If no argumentation framework
+     * is provided, the default values are used.
+     *
      * @param myFramework ArgumentationFramewrok reference
      * @return this Atom
      */
     public Atom setMyFramewrok(ArgumentionFramework myFramework) {
         this.myFramework = myFramework;
+
+        this.toolTip.setTopLevelContainer(myFramework);
+
         return this;
     }
 
     /**
      * Sets the Atom type.
+     *
      * @param type atom type
      * @return this Atom
      */
@@ -194,6 +219,7 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
 
     /**
      * Define if the Atom is strict.
+     *
      * @param strict if the Atom is strict
      * @return this Atom
      */
@@ -249,24 +275,53 @@ public class Atom extends JLabel implements ForegroundUpdateListenner {
     }
 
     void clear() {
-        toolTip.closeBalloon();
+        if (toolTip != null) {
+            toolTip.closeBalloon();
+        }
     }
-    
-    class AtomTooltipPositioner extends LeftBelowPositioner{
+
+    public int getXOverflow() {
+        if (toolTip != null) {
+            if (toolTip.getWidth() > getWidth()) {
+                return (toolTip.getWidth() - getWidth()) / 2;
+            }
+        }
+
+        return 0;
+    }
+
+//    class AtomTooltipPositioner extends LeftBelowPositioner {
+//    class AtomTooltipPositioner extends LeftAbovePositioner {
+    class AtomTooltipPositioner extends CenteredPositioner {
 
         public AtomTooltipPositioner(int hO, int vO) {
-            super(hO, vO);
+//            super(hO, vO);
+            super(vO);
+            orientationCorrection = false;
+//            offsetCorrection = true;
         }
 
         @Override
         protected void determineLocation(Rectangle attached) {
-            if(myFramework != null){
-                Point myFrameP = myFramework.getAFPositionOnFrame(getBalloonTip().getTopLevelContainer());
-                attached.setSize((int)(getWidth() * myFramework.getScaling()), (int)(getHeight() * myFramework.getScaling()));
-                attached.setLocation((int)((getX() + getXToRoot()) * myFramework.getScaling()) + myFrameP.x, (int)((getY() + getYToRoot()) * myFramework.getScaling()) + myFrameP.y);
+            if (myFramework != null) {
+//                int xShift = (int) (((getWidth() * myFramework.getScaling()) - toolTip.getWidth()) / 2);
+//                int xShift = (int) (((getWidth() * myFramework.getScaling()) - toolTip.getWidth()) / 2) + myFramework.getDiagramOffset();
+//                Point myFrameP = myFramework.getAFPositionOnFrame(getBalloonTip().getTopLevelContainer());
+//                Point myFrameP = new Point(myFramework.getDiagramOffset(), 0);
+                attached.x -= myFramework.getDiagramOffset();
+                attached.setSize((int) (getWidth() * myFramework.getScaling()), (int) (getHeight() * myFramework.getScaling()));
+//                attached.setLocation((int) ((getX() + getXToRoot()) * myFramework.getScaling()) + xShift + myFrameP.x, (int) ((getY() + getYToRoot()) * myFramework.getScaling()) + myFrameP.y);
+//                attached.setLocation((int) ((getX() + getXToRoot()) * myFramework.getScaling()) + xShift, (int) ((getY() + getYToRoot()) * myFramework.getScaling()));
+                attached.setLocation((int) (attached.x * myFramework.getScaling()), (int) (attached.y * myFramework.getScaling()) + toolTip.getHeight() - ((toolTip.getHeight()) / 2));
+
+                if (attached.y - toolTip.getHeight() < 0) {
+                    attached.setLocation(attached.x, attached.y + attached.height);
+                }
+
+                attached.x += myFramework.getDiagramOffset();
             }
             super.determineLocation(attached);
         }
-        
+
     }
 }

@@ -18,16 +18,27 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Map;
+import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
+import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
+import javax.swing.JFileChooser;
 import javax.swing.JLayeredPane;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import utfpr.edu.swing.utils.ColorUtil;
+import utfpr.edu.swing.utils.ListOrderer;
 
 /**
  * Class that represents an argumentation framework as a swing.JContainer.
@@ -36,17 +47,19 @@ import utfpr.edu.swing.utils.ColorUtil;
  */
 public class ArgumentionFramework extends JLayeredPane {
 
-    private final ArrayList<Argument> arguments;
+    private ArrayList<Argument> arguments;
     private final HashSet<Attack> attacks;
     private Component focused = null;
     private Integer focusedType = null;
     private int newXPos = 0;
     private final int gap = 20;
+    
+    private ScaledJLayeredPane diagramCanvas;
 
-    private final static int ARGUMENTS_DEFAULT_LAYER = 250;
-    private final static int ARGUMENTS_ALT_LAYER = 500;
     private final static int ATTACKS_DEFAULT_LAYER = 0;
-    private final static int ATTACKS_ALT_LAYER = 750;
+    private final static int ARGUMENTS_DEFAULT_LAYER = 50;
+    private final static int ARGUMENTS_ALT_LAYER = 100;
+    private final static int ATTACKS_ALT_LAYER = 150;
 
     public static final Color DEFAULT_ACCEPTED_NONFOCUSED_ARGUMENT_COLOR = Color.BLACK;
     public static final Color DEFAULT_ACCEPTED_FOCUSED_ARGUMENT_COLOR = Color.BLUE;
@@ -70,6 +83,7 @@ public class ArgumentionFramework extends JLayeredPane {
 
     private final Label emptyMessage;
     private boolean lockTooltipVisibility = false;
+    private boolean lockReorder = false;
 
     /**
      * Constructor of an ArgumentationFramework.
@@ -86,14 +100,19 @@ public class ArgumentionFramework extends JLayeredPane {
                 repositionComponents();
             }
         });
+        
+        diagramCanvas = new ScaledJLayeredPane(this);
+        this.add(diagramCanvas);
 
         arguments = new ArrayList<>();
         attacks = new HashSet<>();
         foregroundListenners = new ArrayList<>();
         emptyMessage = new Label();
-        this.add(emptyMessage);
+//        this.add(emptyMessage);
+        diagramCanvas.add(emptyMessage);
 
-        this.addMouseMotionListener(new MouseAdapter() {
+//        this.addMouseMotionListener(new MouseAdapter() {
+        diagramCanvas.addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
                 boolean overComponent = false;
@@ -109,8 +128,16 @@ public class ArgumentionFramework extends JLayeredPane {
             }
         });
 
-        this.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("control CONTROL"), "showAllTooltips");
-        this.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("released CONTROL"), "hideAllTooltips");
+        this.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("control O"), "openReorder");
+        this.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("shift control O"), "openReorder");
+
+        this.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("control T"), "toggleTooltip");
+
+        this.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("control E"), "exportToIMG");
+        this.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("shift control E"), "exportToIMG");
+
+        this.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("shift pressed SHIFT"), "showAllTooltips");
+        this.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("released SHIFT"), "hideAllTooltips");
         this.getActionMap().put("showAllTooltips", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -133,6 +160,35 @@ public class ArgumentionFramework extends JLayeredPane {
                 lockTooltipVisibility = false;
             }
         });
+        this.getActionMap().put("openReorder", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!lockReorder) {
+                    lockReorder = true;
+
+                    callReorderingPanel();
+                }
+                lockReorder = false;
+            }
+        });
+        this.getActionMap().put("toggleTooltip", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!lockTooltipVisibility) {
+                    lockTooltipVisibility = true;
+                    arguments.forEach((t) -> {
+                        t.setTooltipVisibility(false);
+                    });
+                }
+                lockTooltipVisibility = false;
+            }
+        });
+        this.getActionMap().put("exportToIMG", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                exportToImageFile();
+            }
+        });
     }
 
     protected ImageIcon getSelectedIcon(Color background, Color border, Color tick, int width, int height, boolean selected) {
@@ -150,11 +206,6 @@ public class ArgumentionFramework extends JLayeredPane {
         g2D.setStroke(new BasicStroke(1.5f));
         g2D.drawRect(2, 2, width - 4, height - 4);
 
-//        if(selected){
-//            g2D.setPaint(tick);
-//            g2D.setStroke(new BasicStroke(2f));
-//            g2D.drawPolyline(new int[]{(width/4),(width/2), width-6}, new int[]{height/2, height - 8, 8}, 3);
-//        }
         return new ImageIcon(img);
     }
 
@@ -286,11 +337,12 @@ public class ArgumentionFramework extends JLayeredPane {
     }
 
     public int unScaledX(int x) {
-        return (int) ((x - 5) / scaling);
+//        return (int) ((x) / scaling) - getDiagramOffset();
+        return (int) ((x) / scaling);
     }
 
     public int unScaledY(int y) {
-        return (int) ((y - 5) / scaling);
+        return (int) ((y) / scaling);
     }
 
     /**
@@ -308,12 +360,34 @@ public class ArgumentionFramework extends JLayeredPane {
                 Dimension d = arg.getPreferredSize();
 
                 arg.setBounds(newXPos, 0, d.width, d.height);
-                this.add(arg, (Integer) (ARGUMENTS_DEFAULT_LAYER));
+//                this.add(arg, (Integer) (ARGUMENTS_DEFAULT_LAYER));
+                diagramCanvas.add(arg, (Integer) (ARGUMENTS_DEFAULT_LAYER));
                 foregroundListenners.add(arg);
 
                 emptyMessage.setVisible(false);
 
                 newXPos += d.width + gap;
+            }
+        }
+    }
+    
+    public void removeArgument(Argument arg) {
+        if(arg != null){
+            if(arguments.contains(arg)){
+                ArrayList<Attack> toRemove = new ArrayList<>();
+                for(Attack atck : attacks){
+                    if(atck.getArgument1() == arg || atck.getArgument2() == arg){
+                        toRemove.add(atck);
+                    }
+                }
+                
+                for(Attack rem : toRemove){
+                    removeAttack(rem);
+                }
+                
+                foregroundListenners.remove(arg);
+                diagramCanvas.remove(arg);
+                arguments.remove(arg);
             }
         }
     }
@@ -361,7 +435,17 @@ public class ArgumentionFramework extends JLayeredPane {
             attacks.add(attck);
             attck.setBounds(attck.getProperX(), attck.getProperY(), attck.getProperWidth(), attck.getProperHeight());
 
-            this.add(attck, (Integer) (ATTACKS_DEFAULT_LAYER));
+//            this.add(attck, (Integer) (ATTACKS_DEFAULT_LAYER));
+            diagramCanvas.add(attck, (Integer) (ATTACKS_DEFAULT_LAYER));
+        }
+    }
+    
+    public void removeAttack(Attack attack){
+        if(attack != null){
+            if(attacks.contains(attack)){
+                diagramCanvas.remove(attack);
+                attacks.remove(attack);
+            }
         }
     }
 
@@ -370,6 +454,10 @@ public class ArgumentionFramework extends JLayeredPane {
      */
     public void repositionComponents() {
         newXPos = 0;
+        
+//        if(!arguments.isEmpty()){
+//            newXPos += arguments.get(0).getXOverflow();
+//        }
 
         arguments.forEach((arg) -> {
             Dimension d = arg.getPreferredSize();
@@ -379,25 +467,27 @@ public class ArgumentionFramework extends JLayeredPane {
         });
 
         attacks.forEach((attck) -> {
+            attck.revalidadeDirection();
             attck.setBounds(attck.getProperX(), attck.getProperY(), attck.getProperWidth(), attck.getProperHeight());
         });
 
-        Dimension myD = this.getSize();
+//        Dimension myD = this.getSize();
+        Dimension myD = diagramCanvas.getSize();
         Dimension emptyMD = emptyMessage.getPreferredSize();
         emptyMessage.setBounds((myD.width - emptyMD.width) / 2, (myD.height - emptyMD.height) / 2, emptyMD.width, emptyMD.height);
     }
 
-    @Override
-    public void paint(Graphics g) {
-        Graphics2D g2D = (Graphics2D) g;
-        AffineTransform at = g2D.getTransform();
-
-        g2D.translate(5, 5);
-        g2D.scale(scaling, scaling);
-        super.paint(g);
-
-        g2D.setTransform(at);
-    }
+//    @Override
+//    public void paint(Graphics g) {
+//        Graphics2D g2D = (Graphics2D) g;
+//        AffineTransform at = g2D.getTransform();
+////
+//        g2D.translate(getDiagramOffset(), 0);
+//        g2D.scale(scaling, scaling);
+//        super.paint(g);
+//
+//        g2D.setTransform(at);
+//    }
 
     /**
      * Returns the minimum size for properly rendering the
@@ -424,6 +514,12 @@ public class ArgumentionFramework extends JLayeredPane {
         dim1.setSize(Math.max(dim1.width, dim2.width), Math.max(dim1.height, dim2.height));
 
         int w = 0, h = 0, count = 0;
+        int westOverflow = 0 , eastOverflow = 0;
+        
+        if(!arguments.isEmpty()){
+            westOverflow = arguments.get(0).getXOverflow();
+            eastOverflow = arguments.get(arguments.size()-1).getXOverflow();
+        }
 
         for (Argument a : arguments) {
             Dimension pref = a.getPreferredSize();
@@ -433,7 +529,7 @@ public class ArgumentionFramework extends JLayeredPane {
             count++;
         }
 
-        return new Dimension((int) (Math.max(w + ((count - 1) * gap), dim1.width) * scaling) + 10, (int) (Math.max(h, dim1.height) * scaling) + 10);
+        return new Dimension((int) (Math.max(w + ((count - 1) * gap), dim1.width) * scaling) + 10 + westOverflow + eastOverflow, (int) (Math.max(h, dim1.height) * scaling) + 10);
     }
 
     public Point getAFPositionOnFrame(Container target) {
@@ -447,6 +543,14 @@ public class ArgumentionFramework extends JLayeredPane {
         }
 
         return p;
+    }
+    
+    public int getDiagramOffset(){
+        if(!arguments.isEmpty()){
+            return 10 + arguments.get(0).getXOverflow();
+        }
+        
+        return 10;
     }
 
     /**
@@ -489,14 +593,14 @@ public class ArgumentionFramework extends JLayeredPane {
 
         if (focused instanceof Argument) {
             arguments.stream().filter((a) -> (a.containsArgument((Argument) focused))).forEachOrdered((a) -> {
-                this.setLayer(a, ARGUMENTS_ALT_LAYER);
+                diagramCanvas.setLayer(a, ARGUMENTS_ALT_LAYER);
             });
         } else if (focused instanceof Attack) {
             for (Attack at : attacks) {
                 if (at == focused) {
-                    this.setLayer(at, ATTACKS_ALT_LAYER);
-                    this.setLayer(at.getArgument1(), ARGUMENTS_ALT_LAYER);
-                    this.setLayer(at.getArgument2(), ARGUMENTS_ALT_LAYER);
+                    diagramCanvas.setLayer(at, ATTACKS_ALT_LAYER);
+                    diagramCanvas.setLayer(at.getArgument1(), ARGUMENTS_ALT_LAYER);
+                    diagramCanvas.setLayer(at.getArgument2(), ARGUMENTS_ALT_LAYER);
                 }
             }
         }
@@ -512,14 +616,14 @@ public class ArgumentionFramework extends JLayeredPane {
 
         if (focused instanceof Argument) {
             arguments.stream().filter((a) -> (a.containsArgument((Argument) focused))).forEachOrdered((a) -> {
-                this.setLayer(a, ARGUMENTS_DEFAULT_LAYER);
+                diagramCanvas.setLayer(a, ARGUMENTS_DEFAULT_LAYER);
             });
         } else if (focused instanceof Attack) {
             for (Attack at : attacks) {
                 if (at == focused) {
-                    this.setLayer(at, ATTACKS_DEFAULT_LAYER);
-                    this.setLayer(at.getArgument1(), ARGUMENTS_DEFAULT_LAYER);
-                    this.setLayer(at.getArgument2(), ARGUMENTS_DEFAULT_LAYER);
+                    diagramCanvas.setLayer(at, ATTACKS_DEFAULT_LAYER);
+                    diagramCanvas.setLayer(at.getArgument1(), ARGUMENTS_DEFAULT_LAYER);
+                    diagramCanvas.setLayer(at.getArgument2(), ARGUMENTS_DEFAULT_LAYER);
                 }
             }
         }
@@ -712,21 +816,182 @@ public class ArgumentionFramework extends JLayeredPane {
      */
     public void clear() {
         this.attacks.forEach((attck) -> {
-            this.remove(attck);
+            diagramCanvas.remove(attck);
             attck.clear();
         });
         this.attacks.clear();
         this.arguments.forEach((arg) -> {
-            this.remove(arg);
+            diagramCanvas.remove(arg);
             arg.clear();
         });
         this.arguments.clear();
         focused = null;
         newXPos = 0;
         emptyMessage.setVisible(true);
+        this.revalidate();
+        this.repaint();
+    }
+
+    public ArgumentionFramework emptyClone() {
+        ArgumentionFramework newAF = new ArgumentionFramework();
+        newAF.setEmptyMessage(emptyMessage.getText());
+        newAF.setScaling(scaling);
+        newAF.setSizeMultiplier(sizeMultiplier);
+        newAF.setFadeoff(CLUSTER_FADEOFF);
+        newAF.setAcceptedFocusedArgumentColor(ACCEPTED_FOCUSED_ARGUMENT_COLOR);
+        newAF.setAcceptedNonfocusedArgumentColor(ACCEPTED_NONFOCUSED_ARGUMENT_COLOR);
+        newAF.setRejectedFocusedArgumentColor(REJECTED_FOCUSED_ARGUMENT_COLOR);
+        newAF.setRejectedNonfocusedArgumentColor(REJECTED_NONFOCUSED_ARGUMENT_COLOR);
+
+        return newAF;
     }
 
     public boolean isTooltipVisibilityLocked() {
         return lockTooltipVisibility;
     }
+
+    public void callReorderingPanel() {
+        ListOrderer orderer = new ListOrderer(arguments);
+        int option = JOptionPane.showConfirmDialog(null, orderer.makeUI(), "Reorder the arguments.", JOptionPane.PLAIN_MESSAGE, -1, null);
+
+        if (option == JOptionPane.OK_OPTION) {
+            Map<Integer, Integer> map = orderer.getList();
+
+            ArrayList<Argument> orderedArguments = new ArrayList<>(arguments.size());
+
+            for (int k = 0; k < arguments.size(); k++) {
+                orderedArguments.add(k, arguments.get(map.get(k)));
+            }
+
+            arguments = orderedArguments;
+
+            repositionComponents();
+            revalidate();
+            repaint();
+        }
+    }
+
+    public void exportToImageFile() {
+        JFileChooser fChooser = new JFileChooser();
+        fChooser.setDialogType(JFileChooser.SAVE_DIALOG);
+        fChooser.removeChoosableFileFilter(fChooser.getFileFilter());
+        fChooser.setFileFilter(new FileNameExtensionFilter("PNG file", "png"));
+        fChooser.addChoosableFileFilter(new FileNameExtensionFilter("JPG file", "jpg"));
+        fChooser.addChoosableFileFilter(new FileNameExtensionFilter("GIF file", "gif"));
+        if (fChooser.showSaveDialog(getParent()) == JFileChooser.APPROVE_OPTION) {
+            File toSave = fChooser.getSelectedFile();
+
+            if (toSave.getName().isEmpty()) {
+                JOptionPane.showMessageDialog(getParent(), "You must give the file a name.");
+                return;
+            }
+
+            String type = fChooser.getFileFilter().getDescription().substring(0, 3);
+            switch (type) {
+                case "PNG":
+                    if (!toSave.getName().endsWith("png")) {
+                        toSave = new File(toSave.getAbsolutePath().concat(".png"));
+                    }
+                    break;
+                case "JPG":
+                    if (!toSave.getName().endsWith("jpg")) {
+                        toSave = new File(toSave.getAbsolutePath().concat(".jpg"));
+                    }
+                    break;
+                case "GIF":
+                    if (!toSave.getName().endsWith("gif")) {
+                        toSave = new File(toSave.getAbsolutePath().concat(".gif"));
+                    }
+                    break;
+            }
+            System.out.println(toSave);
+
+            FileOutputStream fOut = null;
+            if (toSave.exists()) {
+                if (JOptionPane.showConfirmDialog(getParent(), toSave.getName() + " already exists. Do you want to override it?", "Confirm Save", JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
+                    return;
+                }
+                try {
+                    toSave.createNewFile();
+                } catch (IOException ex) {
+                    return;
+                }
+            }
+
+            try {
+                fOut = new FileOutputStream(toSave);
+
+                Dimension imgDim = new Dimension(getPreferredSize());
+
+                if (diagramColorLegend != null) {
+                    imgDim.width = Math.max(diagramColorLegend.getPreferredSize().width, imgDim.width);
+                    imgDim.height += diagramColorLegend.getPreferredSize().height + 2;
+                }
+
+                BufferedImage image = new BufferedImage(imgDim.width, imgDim.height, BufferedImage.TYPE_INT_RGB);
+                Graphics2D g = image.createGraphics();
+                g.setColor(getBackground());
+                g.fillRect(0, 0, image.getWidth(), image.getHeight());
+                g.translate(((imgDim.width - getPreferredSize().width) / 2), 0);
+                printAll(g);
+                g.translate(-((imgDim.width - getPreferredSize().width) / 2), 0);
+                if (diagramColorLegend != null) {
+                    g.setColor(Color.DARK_GRAY);
+//                    g.translate(5, 5);
+                    g.fillRect(0, getPreferredSize().height, image.getWidth(), 2);
+                    g.setColor(diagramColorLegend.getBackground());
+                    g.fillRect(0, getPreferredSize().height + 2, image.getWidth(), diagramColorLegend.getHeight());
+                    g.translate(((imgDim.width - diagramColorLegend.getWidth()) / 2), imgDim.getHeight() - diagramColorLegend.getPreferredSize().height);
+                    diagramColorLegend.printAll(g);
+                }
+                g.dispose();
+                ImageIO.write(image, toSave.getName().substring(toSave.getName().length() - 3, toSave.getName().length()), toSave);
+
+            } catch (FileNotFoundException ex) {
+                JOptionPane.showMessageDialog(getParent(), "There was an error during save. Check if you have permission to write to the selected file.");
+            } catch (IOException ex) {
+            } finally {
+                try {
+                    if (fOut != null) {
+                        fOut.close();
+                    }
+                } catch (IOException ex) {
+                }
+            }
+
+        }
+    }
+}
+
+class ScaledJLayeredPane extends JLayeredPane{
+    private final ArgumentionFramework myFramework;
+
+    public ScaledJLayeredPane(ArgumentionFramework myFrameworkRef) {
+        super();
+        
+        setOpaque(true);
+        
+        this.myFramework = myFrameworkRef;
+        
+        this.myFramework.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+//                setSize(e.getComponent().getSize());
+                setBounds(myFramework.getDiagramOffset(), 0, e.getComponent().getWidth() - myFramework.getDiagramOffset(), e.getComponent().getHeight());
+            }
+        });
+    }
+
+    @Override
+    public void paint(Graphics g) {
+        Graphics2D g2D = (Graphics2D) g;
+        AffineTransform at = g2D.getTransform();
+
+//        g2D.translate(5, 5);
+        g2D.scale(myFramework.getScaling(), myFramework.getScaling());
+        super.paint(g);
+
+        g2D.setTransform(at);
+    }
+    
 }

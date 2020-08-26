@@ -17,10 +17,11 @@ import javax.swing.JPanel;
 
 /**
  * Represents an attack as a swing.JComponent.
+ *
  * @author Henrique M R Jasinski
  */
 public class Attack extends JPanel {
-    
+
     private ArgumentionFramework myFramework;
 
     private Argument a1;
@@ -37,9 +38,9 @@ public class Attack extends JPanel {
     private char type = ' ';
 
     /**
-     * Constructor of an Attack.
-     * Is interpreted as arg1 attacks arg2.
-     * If myFramework is not set, the default values are used.
+     * Constructor of an Attack. Is interpreted as arg1 attacks arg2. If
+     * myFramework is not set, the default values are used.
+     *
      * @param arg1 first argument
      * @param arg2 second argument
      * @param myFramework ArgumentationFramework reference
@@ -48,7 +49,7 @@ public class Attack extends JPanel {
         super();
         this.myFramework = myFramework;
         thisRef = this;
-        
+
         if (arg1 == null || arg2 == null) {
             throw new NullPointerException("Argument a1 and a2 can not be null");
         }
@@ -105,13 +106,44 @@ public class Attack extends JPanel {
 //                }
 //            }
 //        });
-
         img = null;
     }
 
+    public void revalidadeDirection() {
+        boolean redraw = false;
+        if ((a1.getXToRoot() + a1.getX()) < (a2.getXToRoot() + a2.getX())) {
+            if (leftMost != a1) {
+                leftMost = a1;
+                rightMost = a2;
+                type = '>';
+                
+                redraw = true;
+            }
+        } else {
+            if (leftMost != a2) {
+                leftMost = a2;
+                rightMost = a1;
+                type = '<';
+                
+                redraw = true;
+            }
+        }
+
+        if (img != null) {
+            redraw |= img.getWidth() != getProperWidth();
+        }
+
+        if (redraw) {
+            dirty = true;
+            revalidate();
+            repaint();
+        }
+    }
+
     /**
-     * Defines the Argumentation Framework reference.
-     * If not set, the default values are used.
+     * Defines the Argumentation Framework reference. If not set, the default
+     * values are used.
+     *
      * @param myFramework the ArgumentationFramework reference
      * @return this Attack
      */
@@ -119,7 +151,7 @@ public class Attack extends JPanel {
         this.myFramework = myFramework;
         return this;
     }
-    
+
     private boolean onTop(int x, int y) {
         if (img == null) {
             return false;
@@ -130,15 +162,15 @@ public class Attack extends JPanel {
 
         return img.getRGB(x, y) != 16777216;
     }
-    
+
     private boolean onTop(int x, int y, Rectangle bound) {
         int correctedX = x - bound.x;
         int correctedY = y - bound.y;
-        
-        if(correctedX < 0 || correctedY < 0){
+
+        if (correctedX < 0 || correctedY < 0) {
             return false;
         }
-        
+
         if (img == null) {
             return false;
         }
@@ -148,18 +180,19 @@ public class Attack extends JPanel {
 
         return img.getRGB(correctedX, correctedY) != 16777216;
     }
-    
-    public boolean mouseMoved(int mouseX, int mouseY){
-        if(onTop(myFramework.unScaledX(mouseX), myFramework.unScaledY(mouseY), getBounds())){
+
+    public boolean mouseMoved(int mouseX, int mouseY) {
+        if (onTop(myFramework.unScaledX(mouseX), myFramework.unScaledY(mouseY), getBounds())) {
             if (!lockRedraw) {
                 lockRedraw = true;
 
-                if (getParent() instanceof ArgumentionFramework) {
-                    ((ArgumentionFramework) getParent()).setFocus(thisRef);
+//                if (getParent() instanceof ArgumentionFramework) {
+                if (getParent() instanceof ScaledJLayeredPane) {
+                    ((ArgumentionFramework) getParent().getParent()).setFocus(thisRef);
                 }
             }
             return true;
-        }else{
+        } else {
             if (lockRedraw) {
                 lockRedraw = false;
 
@@ -173,6 +206,7 @@ public class Attack extends JPanel {
 
     /**
      * Defines if the attack is bidirectional
+     *
      * @param bidirectional if the argumento is bidirectional
      * @return this Attack
      */
@@ -183,6 +217,7 @@ public class Attack extends JPanel {
 
     /**
      * Returns the first argument.
+     *
      * @return first argument
      */
     public Argument getArgument1() {
@@ -191,23 +226,26 @@ public class Attack extends JPanel {
 
     /**
      * Returns the second argument.
+     *
      * @return second argument
      */
     public Argument getArgument2() {
         return a2;
     }
-    
+
     /**
      * Tests if arg is subargument of this.a1 or this.a2.
+     *
      * @param arg target argument
      * @return true if arg is subargument of this.a1 or this.a2, false otherwise
      */
-    public boolean isAbout(Argument arg){
+    public boolean isAbout(Argument arg) {
         return a1.containsArgument(arg) || a2.containsArgument(arg);
     }
 
     /**
      * If the attack is bidirectional.
+     *
      * @return true if the attack is bidirectional, false otherwise
      */
     public boolean isBidirectional() {
@@ -216,6 +254,7 @@ public class Attack extends JPanel {
 
     /**
      * Tests if attack is the inverse of this.
+     *
      * @param attack tested attack
      * @return true if attack.a1 == this.a2 AND attack.a2 == this.a1
      */
@@ -225,6 +264,7 @@ public class Attack extends JPanel {
 
     /**
      * Tests if obj is equal to this.
+     *
      * @param obj tested object
      * @return if this == obj
      */
@@ -249,7 +289,8 @@ public class Attack extends JPanel {
 
     /**
      * Auxiliary to the equals override.
-     * @return 
+     *
+     * @return
      */
     @Override
     public int hashCode() {
@@ -261,6 +302,7 @@ public class Attack extends JPanel {
 
     /**
      * Returns the proper y position for the attack component
+     *
      * @return components proper y position
      */
     public int getProperX() {
@@ -269,6 +311,7 @@ public class Attack extends JPanel {
 
     /**
      * Returns the proper x position for the attack component
+     *
      * @return components proper x position
      */
     public int getProperY() {
@@ -277,6 +320,7 @@ public class Attack extends JPanel {
 
     /**
      * Returns the proper width for the attack component
+     *
      * @return components proper width
      */
     public int getProperWidth() {
@@ -285,25 +329,29 @@ public class Attack extends JPanel {
 
     /**
      * Returns the proper height for the attack component
+     *
      * @return components proper height
      */
     public int getProperHeight() {
         int max = (leftMost.getConclusionMiddleYPosition() + leftMost.getY()) - (rightMost.getConclusionMiddleYPosition() + rightMost.getY());
-        if (max < 0) max *= -1;
-        return max+10;
+        if (max < 0) {
+            max *= -1;
+        }
+        return max + 10;
     }
 
     /**
      * Paints the Attack.
+     *
      * @param g graphics instance.
      */
     @Override
     public void paint(Graphics g) {
-        if (!(this.getParent() instanceof ArgumentionFramework)) {
+        if (!(this.getParent() instanceof ScaledJLayeredPane)) {
             throw new IllegalCallerException("An attack must be child of a ArgumentCluster to be painted.");
         }
 
-        ArgumentionFramework cluster = (ArgumentionFramework) this.getParent();
+        ArgumentionFramework cluster = (ArgumentionFramework) this.getParent().getParent();
 
         if (!cluster.containsArgument(a1) || !cluster.containsArgument(a2)) {
             throw new IllegalCallerException("Parent ArgumentCluster must contains both arguments.");
@@ -324,7 +372,7 @@ public class Attack extends JPanel {
         double distance = lMP.distance(rMP);
 
         Graphics2D g2dBuffer = img.createGraphics();
-        
+
         int posAx = 0;
         int posAy = (int) lMP.getY() - this.getY() - 5;
         int trAxSize = 10;
@@ -335,10 +383,9 @@ public class Attack extends JPanel {
 
         g2dBuffer.setPaint((transparent ? ColorUtil.blend(getForeground(), (myFramework == null ? ArgumentionFramework.DEFAULT_CLUSTER_BACKGROUND_COLOR : myFramework.getBackground()), (myFramework == null ? ArgumentionFramework.DEFAULT_CLUSTER_FADEOFF : myFramework.getFadeoff())) : getForeground()));
 
-        
-        g2dBuffer.translate(0,posAy);
+        g2dBuffer.translate(0, posAy);
         g2dBuffer.rotate(Math.atan2((rMP.getY() - lMP.getY()), rMP.getX() - lMP.getX()));
-        
+
         if (type == '<' || bidirectional) {
             g2dBuffer.fillPolygon(new int[]{trAxSize + posAx, posAx, trAxSize + posAx}, new int[]{0, trAxMidd, trAxSize}, 3);
         }
@@ -352,7 +399,6 @@ public class Attack extends JPanel {
         g2dBuffer.setStroke(new BasicStroke(3f));
         g2dBuffer.drawLine((type == '<' || bidirectional ? trAxSize : 1) + 1, 4, (int) (distance - (type == '>' || bidirectional ? trAxSize : 0)) - 2, 4);
 
-        
         g2d.drawImage(img, 0, 0, this);
 
         dirty = false;
@@ -360,7 +406,8 @@ public class Attack extends JPanel {
 
     /**
      * Defines if the Attack is translucent. Mimics an alpha chanel.
-     * @param translucent 
+     *
+     * @param translucent
      */
     public void isTranslucent(boolean translucent) {
 
@@ -374,6 +421,6 @@ public class Attack extends JPanel {
     }
 
     public void clear() {
-        
+
     }
 }
